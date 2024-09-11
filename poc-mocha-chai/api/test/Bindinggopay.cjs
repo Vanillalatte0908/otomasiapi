@@ -1,8 +1,7 @@
 const axios = require('axios').default;
-const { setAccessToken, getAccessToken } = require('./savetoken.cjs');
-const { setregistrationPage, getregistrationPage } = require('./RegistrationURL.cjs'); // Import the URL utilityconst moment = require('moment');
-const moment = require('moment'); // Import moment correctly
-
+const { setAccessToken, getAccessToken } = require('./savetoken.cjs'); // Import the token utility
+const { setregistrationPage, getregistrationPage } = require('./RegistrationURL.cjs');
+const moment = require('moment');
 
 // Before all tests, fetch and store the access token
 before(async () => {
@@ -41,6 +40,7 @@ describe('Use Access Token', () => {
     try {
       // Dynamically import chai
       const { expect } = await import('chai');
+
       const token = getAccessToken(); // Retrieve the access token from the utility
       console.log('Using Token:', token);
       expect(token).to.not.be.undefined; // Ensure token is available
@@ -49,7 +49,7 @@ describe('Use Access Token', () => {
         productCode: "direct_gopay",
         cardType: "EMONEY",
         customerName: "Refqi Test",
-        mobileNumber: "087825252524",
+        mobileNumber: "081218244613",
         userId: "test0000006",
         redirectUrl: "https://apistaging.my-pertamina.id/finserv-payment/v1/success",
         callbackUrl: "https://myptm-direct-payment-service.vsan-apps.playcourt.id/direct-payment/v1/customer-payment-method/callback"
@@ -68,24 +68,25 @@ describe('Use Access Token', () => {
         },
       });
 
-      console.log('Status:', response.status);
-      console.log('Response Data:', response.data);
+      console.log(response.data);
 
-      if (response.data && response.data.data.registrationPage) {
-        setregistrationPage(response.data.data.registrationPage); // Save the registrationPage URL
+      // Check if registrationPage exists inside response.data.data
+      if (response.data && response.data.data && response.data.data.registrationPage) {
+        const registrationPage = response.data.data.registrationPage;
+        setregistrationPage(registrationPage); // Save the registrationPage URL
       } else {
         console.error('No registrationPage found in the response');
       }
 
       expect(response.status).to.equal(200);
       expect(response.data).to.be.an('object');
-      
-      const registrationUrl = getregistrationPage();
+
+      const registrationUrl = getregistrationPage(); // Get the saved URL
       console.log('Opening URL:', registrationUrl);
 
       if (registrationUrl) {
         const open = await import('open');
-        open.default(registrationUrl); // Use open.default for ESM default export
+        open.default(registrationUrl);
       } else {
         console.error('No registration URL found to open');
       }

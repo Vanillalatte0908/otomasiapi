@@ -1,5 +1,6 @@
 const axios = require('axios').default;
 const { setAccessToken, getAccessToken } = require('./savetoken.cjs'); // Import the token utility
+const { setregistrationPage, getregistrationPage } = require('./RegistrationURL.cjs');
 const moment = require('moment');
 
 // Before all tests, fetch and store the access token
@@ -67,11 +68,28 @@ describe('Use Access Token', () => {
         },
       });
 
-      console.log('Status:', response.status);
-      console.log('Response Data:', response.data);
+      console.log(response.data);
+
+      // Check if registrationPage exists inside response.data.data
+      if (response.data && response.data.data && response.data.data.registrationPage) {
+        const registrationPage = response.data.data.registrationPage;
+        setregistrationPage(registrationPage); // Save the registrationPage URL
+      } else {
+        console.error('No registrationPage found in the response');
+      }
 
       expect(response.status).to.equal(200);
       expect(response.data).to.be.an('object');
+
+      const registrationUrl = getregistrationPage(); // Get the saved URL
+      console.log('Opening URL:', registrationUrl);
+
+      if (registrationUrl) {
+        const open = await import('open');
+        open.default(registrationUrl);
+      } else {
+        console.error('No registration URL found to open');
+      }
 
     } catch (error) {
       console.error('Error:', error.response ? error.response.data : error.message);

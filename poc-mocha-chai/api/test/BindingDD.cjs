@@ -2,6 +2,13 @@ const axios = require('axios').default;
 const { setAccessToken, getAccessToken } = require('./savetoken.cjs'); // Import the token utility
 const { setregistrationPage, getregistrationPage } = require('./RegistrationURL.cjs');
 const moment = require('moment');
+const { Builder, By } = require('selenium-webdriver');
+const chrome = require('selenium-webdriver/chrome');
+
+const chromeOptions = new chrome.Options();
+chromeOptions.addArguments('start-maximized'); // Start browser maximized
+
+let driver; // Declare WebDriver variable
 
 // Before all tests, fetch and store the access token
 before(async () => {
@@ -27,10 +34,20 @@ before(async () => {
 
     expect(response.status).to.equal(200);
     expect(response.data.accessToken).to.be.a('string');
+
+    // Initialize WebDriver
+    driver = await new Builder().forBrowser('chrome').setChromeOptions(chromeOptions).build();
     
   } catch (error) {
     console.error('Error:', error.response ? error.response.data : error.message);
     throw error;
+  }
+});
+
+// After all tests, close WebDriver
+after(async () => {
+  if (driver) {
+    await driver.quit();
   }
 });
 
@@ -62,7 +79,7 @@ describe('Use Access Token', () => {
         headers: {
           'AccessToken': `Bearer ${token}`, // Use the retrieved token
           'X-MID': '195269895344',
-          'X-TIMESTAMP':  timestamp,
+          'X-TIMESTAMP': timestamp,
           'X-SIGNATURE': signature,
           'PaymentType': 'NON-CC',
         },
@@ -74,22 +91,32 @@ describe('Use Access Token', () => {
       if (response.data && response.data.data && response.data.data.registrationPage) {
         const registrationPage = response.data.data.registrationPage;
         setregistrationPage(registrationPage); // Save the registrationPage URL
+
+        // Open the URL in the default browser
+        const { default: open } = await import('open'); // Correctly import the 'open' module
+        console.log('Opening URL:', registrationPage);
+        open(registrationPage);
+
+        // Wait for the page to load
+        await driver.get(registrationPage);
+
+        // Automate interactions on the opened page
+        // Example: Find an element and interact with it
+        // Replace 'elementId' with the actual ID of the element you want to interact with
+        const someElement = await driver.findElement(By.id('elementId'));
+        await someElement.sendKeys('Test input'); // Example interaction
+
+        // Example assertion
+        const resultElement = await driver.findElement(By.id('resultElementId')); // Replace with actual result element ID
+        const resultText = await resultElement.getText();
+        expect(resultText).to.equal('Expected Result'); // Replace with the expected result
+
       } else {
         console.error('No registrationPage found in the response');
       }
 
       expect(response.status).to.equal(200);
       expect(response.data).to.be.an('object');
-
-      const registrationUrl = getregistrationPage(); // Get the saved URL
-      console.log('Opening URL:', registrationUrl);
-
-      if (registrationUrl) {
-        const open = await import('open');
-        open.default(registrationUrl);
-      } else {
-        console.error('No registration URL found to open');
-      }
 
     } catch (error) {
       console.error('Error:', error.response ? error.response.data : error.message);
